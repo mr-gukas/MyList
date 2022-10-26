@@ -14,16 +14,20 @@
                    #condition, __FILE__, __LINE__, __PRETTY_FUNCTION__);  \
             abort();}
 
-    #define ASSERT_OK(list)                   \
-        if (ListVerify(list) != LIST_STATUS_OK)\
-        {                                       \
-            ListDump(list);                      \
-            ASSERT(0 && "Crashed list")           \
+    #define ASSERT_OK(list)                                                         \
+        if (ListVerify(list) != LIST_STATUS_OK && ListIsEmpty(list) != LIST_IS_EMPTY)\
+        {                                                                             \
+            ListDump(list);                                                            \
+            ASSERT(0 && "Crashed list")                                                 \
         }
 
+    #define $$(cmd)                              \
+        if (cmd){                                 \
+            fprintf(stderr, "Error in " #cmd "\n");}
 #else
     #define ASSERT(condition) ;
-    #define ASSERT_OK(stk)    ;
+    #define ASSERT_OK(list)   ;
+    #define $$(cmd)           ; 
 #endif
 
 #define TYPE_ARG_FMT "%d"
@@ -55,6 +59,15 @@ enum ListStatus
     LIST_UB                 = 1 << 7,
     BAD_INSERT              = 1 << 8,
     BAD_REMOVE              = 1 << 9,
+    EXTRA_ELEM_RUINED       = 1 << 10,
+    SIZE_MORETHAN_CAPACITY  = 1 << 11,
+    TOO_LONG_TALE           = 1 << 12,
+    TOO_BIG_HEAD            = 1 << 13,
+    TOO_MUCH_FREEDOM        = 1 << 14,
+    RUINED_HEAD             = 1 << 15,
+    RUINED_TALE             = 1 << 16,
+    BAD_INDEX               = 1 << 17, 
+    LIST_RUINED             = 1 << 18,
 };
 
 struct Node_t
@@ -108,3 +121,12 @@ int ListLinearize(List_t *list);
 size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value);
 void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], const char func[MAX_STR_SIZE]);
 size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value);
+size_t ListInsertTale(List_t* list, Elem_t value);
+size_t ListInsertHead(List_t* list, Elem_t value);
+Elem_t ListRemove(List_t* list, size_t physIndex);
+Elem_t ListRemoveTale(List_t* list);
+Elem_t ListRemoveHead(List_t* list);
+size_t FindElemByValue(List_t* list, Elem_t value);
+int ListVerify(List_t* list);
+int ListTotalCleaning(List_t* list);
+

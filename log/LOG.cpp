@@ -2,7 +2,7 @@
 
 FILE* startLog(FILE* LogFile)
 {
-    LogFile = fopen(PRINT_FILE, "w+");
+    LogFile = fopen(PRINT_FILE, "a+");
 
     fprintf(LogFile, "---------------------------Started logging---------------------------------\n");
     printTime(LogFile);

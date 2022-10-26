@@ -5,6 +5,8 @@ extern FILE* LogFile;
 Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode)
 {
     if (list == NULL) return NULL;
+   
+    ASSERT_OK(list);
 
     size_t updCapacity = 0;
     
@@ -12,7 +14,7 @@ Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode)
     {
         if (list->size >= list->capacity)
         {
-            updCapacity  = list->capacity * 2;
+            updCapacity = list->capacity * 2;
         }
         else
             return list->data;
@@ -56,7 +58,7 @@ Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode)
 
 
         list->capacity = updCapacity;
-
+        
         return dataptr;
     }
 
@@ -108,12 +110,16 @@ Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode)
 
     list->status |= BAD_RESIZE;
 
+    ASSERT_OK(list);
+
     return NULL;
 }
 
 int ListLinearize(List_t *list)
 {
     if (list == NULL) return LIST_NULL_PTR;
+    
+    ASSERT_OK(list);
 
     Node_t* dataptr = (Node_t*) calloc(1 + list->capacity, sizeof(Node_t));
     if (dataptr == NULL) return CAN_NOT_ALLOCATE_MEMORY;
@@ -152,6 +158,8 @@ int ListLinearize(List_t *list)
     list->tale     = (list->size == 0 ? 1 : list->size);
     list->data     = dataptr;
 
+    ASSERT_OK(list);
+
     return LIST_STATUS_OK;
 }
 
@@ -171,7 +179,7 @@ int ListCtor(List_t* list, size_t capacity)
     list->size     = 0;
     list->isSorted = true;
     list->capacity = capacity;
-
+    
     for (size_t index = 1; index < list->capacity; ++index)
     {
         list->data[index].prev = FREEE;
@@ -180,6 +188,8 @@ int ListCtor(List_t* list, size_t capacity)
 
     list->data[list->capacity].prev  = FREEE;
     list->data[list->capacity].next  = 0;
+    
+    ASSERT_OK(list);
 
     return LIST_STATUS_OK;
 }
@@ -224,6 +234,8 @@ int ListIsEmpty(List_t* list)
 
 size_t ReturnPhysicalIndexFromLogical(List_t* list, size_t logIndex)
 {
+    ASSERT_OK(list);
+
     if (list == NULL || logIndex == 0 || logIndex > list->capacity) return size_t (-1);
 
     if (list->isSorted)
@@ -243,26 +255,43 @@ size_t ReturnPhysicalIndexFromLogical(List_t* list, size_t logIndex)
 
 size_t ListHead(List_t* list)
 {
+    ASSERT_OK(list);
+
     return list->head;
 }
 
 size_t ListTale(List_t* list)
 {
+    ASSERT_OK(list);
+
     return list->tale;
 }
 
 size_t ListNext(List_t* list, size_t physIndex)
 {
+    ASSERT_OK(list);
+
     return list->data[physIndex].next;
 }
 
 size_t ListPrev(List_t* list, size_t physIndex)
 {
+    ASSERT_OK(list);
+
     return list->data[physIndex].prev;
 }
 
 size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
 {
+    ASSERT_OK(list);
+    
+    if (physIndex > list->capacity          ||
+       (list->data[physIndex].prev == FREEE &&
+        (list->size != 0 || physIndex != list->tale)))
+    {
+        return BAD_INSERT;
+    }
+
     Node_t* dataptr = ListResize(list, UP);
     if (dataptr == NULL)
     {
@@ -328,13 +357,24 @@ size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
     }
 
     ++list->size;
+    
+    ASSERT_OK(list);
 
     return elemIndex;
 }
 
 size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value)
 {
-    size_t elemIndex = 0;
+    if (list == NULL) return 0;
+
+    ASSERT_OK(list);
+    
+    if (physIndex == 0 || physIndex >= list->capacity)
+    {
+        return BAD_INSERT;
+    }
+
+   size_t elemIndex = 0;
 
     Node_t* dataptr = ListResize(list, UP);
     if (dataptr == NULL)
@@ -368,30 +408,327 @@ size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value)
     {
        elemIndex = ListInsertAfter(list, list->data[physIndex].prev, value);
     }
+    
+    ASSERT_OK(list);
 
     return elemIndex;
 }
 
+size_t ListInsertTale(List_t* list, Elem_t value)
+{
+    ASSERT_OK(list);
+
+    return ListInsertAfter(list, ListTale(list), value);
+}
+
+size_t ListInsertHead(List_t* list, Elem_t value)
+{
+    ASSERT_OK(list);
+    return ListInsertBefore(list, ListHead(list), value);
+}
+
+Elem_t ListRemove(List_t* list, size_t physIndex)
+{
+    ASSERT_OK(list);
+    Elem_t value = 0;
+    
+    if (list->size == 0)
+    {
+        list->status |= BAD_REMOVE;
+        return POISON;
+    }
+
+    if (physIndex == list->head)
+    {
+        if (physIndex == list->tale)
+        {
+            value = list->data[physIndex].value;
+                
+            list->data[physIndex].prev  = FREEE;
+            list->data[physIndex].next  = list->freeHead;
+            list->data[physIndex].value = 0;
+            list->freeHead              = physIndex;
+        }
+        else
+        {
+            value           = list->data[physIndex].value;
+            size_t newHead  = list->data[list->head].next;
+
+            list->data[list->head].prev  = FREEE;
+            list->data[list->head].value = 0;
+            list->data[list->head].next  = list->freeHead;
+            
+            list->freeHead = physIndex;
+            list->head     = newHead;
+        }
+    }
+    else if (physIndex == list->tale)
+    {
+        value           = list->data[physIndex].value;
+        size_t newTale  = list->data[list->tale].prev;
+
+        list->data[list->tale].prev  = FREEE;
+        list->data[list->tale].value = 0;
+        list->data[list->tale].next  = list->freeHead;
+        
+        list->freeHead              = physIndex;
+        list->tale                  = newTale;
+        list->data[list->tale].next = 0;
+    }
+    else
+    {
+        value = list->data[physIndex].value;
+
+        size_t next = list->data[physIndex].next;
+        size_t prev = list->data[physIndex].prev;
+    
+        list->data[physIndex].prev  = FREEE;
+        list->data[physIndex].next  = list->freeHead;
+        list->data[physIndex].value = 0;
+
+        list->freeHead = physIndex;
+
+        list->data[next].prev = prev;
+        list->data[prev].next = next;
+
+        list->isSorted = false;
+
+    } 
+    
+    --list->size;
+
+    if (list->isSorted)
+    {
+        Node_t* dataptr = ListResize(list, DOWN);
+        if (dataptr == NULL)
+        {
+            list->status |= BAD_REMOVE;
+            return POISON;
+        }
+
+        list->data = dataptr;
+    }
+
+    ASSERT_OK(list);
+    return value;
+}
+
+Elem_t ListRemoveTale(List_t* list)
+{
+    ASSERT_OK(list);
+    return ListRemove(list, ListTale(list));
+}
+
+Elem_t ListRemoveHead(List_t *list)
+{
+    ASSERT_OK(list);
+    return ListRemove(list, ListHead(list));
+}
+
+size_t FindElemByValue(List_t* list, Elem_t value)
+{
+    ASSERT_OK(list);
+    size_t physIndex = list->head;
+
+    while (physIndex != 0 && list->data[physIndex].value != value)
+    {
+        physIndex = list->data[physIndex].next;
+    }
+
+    return physIndex;
+}
+
+int ListTotalCleaning(List_t* list)
+{
+    if (list == NULL)
+        return LIST_NULL_PTR;
+
+    ASSERT_OK(list);
+
+    if (ListIsEmpty(list) == LIST_IS_EMPTY)
+        return LIST_IS_EMPTY;
+    
+    while (list->size != 0)
+        ListRemoveTale(list);
+    
+    list->status |= LIST_IS_EMPTY;
+
+    return LIST_STATUS_OK;
+}
+
+int ListVerify(List_t* list)
+{
+    if (list == NULL)                                 return LIST_NULL_PTR;
+    
+    if (ListIsEmpty(list) == LIST_IS_EMPTY)           return LIST_IS_EMPTY;
+
+    if (ListIsDestructed(list) == LIST_IS_DESTRUCTED) return LIST_IS_DESTRUCTED;
+
+    int status = LIST_STATUS_OK;
+
+    if (list->size > list->capacity)
+        status |= SIZE_MORETHAN_CAPACITY;
+
+    if (list->tale > list->capacity)
+        status |= TOO_LONG_TALE;
+
+    if (list->head > list->capacity)
+        status |= TOO_BIG_HEAD;
+
+    if (list->freeHead > list->capacity)
+        status |= TOO_MUCH_FREEDOM;
+
+    if (list->data == NULL) 
+        status |= LIST_DATA_NULL_PTR;
+    
+    if (status)
+    {
+        list->status = status;
+        return status;
+    }
+
+    if (list->data[0].next != 0 &&
+        list->data[0].prev != 0 &&
+        list->data[0].value != 0)
+    {
+        status |= EXTRA_ELEM_RUINED;
+    }
+
+    if (list->tale != list->head && list->data[list->head].prev != 0)
+        status |= RUINED_HEAD;
+    
+    if (list->tale != list->head && list->data[list->tale].next != 0)
+        status |= RUINED_TALE;
+
+    if (status)
+    {
+        list->status = status;
+        return status;
+    }
+    
+    for (size_t index = 1; index <= list->capacity; ++index)
+    {
+        if (list->data[index].next > list->capacity ||
+            (list->data[index].prev != FREEE && list->data[index].prev > list->capacity))
+        {
+            status |= BAD_INDEX;
+            break;
+        }
+    }
+
+    size_t curIndex = list->head;
+    size_t size     = 0;
+
+    while (size <= list->capacity)
+    {
+        if (list->data[curIndex].next == 0)
+        {
+            if (curIndex != list->capacity && curIndex != list->tale)
+            {
+                status |= BAD_INDEX;
+            }
+
+            ++size;
+            break;
+        }
+        else if (list->data[list->data[curIndex].next].prev != FREEE &&
+                  (list->data[list->data[curIndex].next].prev != curIndex ||
+                (list->data[curIndex].prev != 0 && list->data[list->data[curIndex].prev].next != curIndex)))
+        {
+            status |= BAD_INDEX;
+            break;
+        }
+
+        curIndex = list->data[curIndex].next;
+        ++size;
+    }
+
+    curIndex = list->freeHead;
+
+    while (size < list->capacity && curIndex != 0)
+    {
+        if (list->data[curIndex].next == 0)
+        {
+            if (list->data[curIndex].prev  != FREEE)
+            {
+                status |= LIST_RUINED;
+            }
+
+            ++size;
+            break;
+        }
+        else if (list->data[curIndex].prev != FREEE)
+        {
+
+            status |= LIST_RUINED;
+            break;
+        }
+        
+        curIndex = list->data[curIndex].next;
+        ++size;
+    }
+
+    if (size != list->capacity)
+    {
+        status |= LIST_RUINED;
+    }
+    
+    list->status = status;
+
+    return status;
+}
+    
+
 void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], const char func[MAX_STR_SIZE])
 {   
+    ASSERT(list != NULL);
+
+    list->status = ListVerify(list);
     
     fprintf(LogFile, "\n---------------------------ListDump---------------------------------------\n");
    
-    if (list->status & LIST_NULL_PTR)
-    {
-        fprintf(LogFile, "Lists's pointer is null\n");
-    }
-
     fprintf(LogFile, "Called at %s at %s(%lu)\n", file, func, line);
     fprintf(LogFile, "List status:\n");
-    
+
+    #define StatPrint_(STATUS, text) \
+    if (list->status & STATUS)        \
+    {                                  \
+        fprintf(LogFile, #text "\n");   \
+    }
+
+    StatPrint_(LIST_RUINED,              >>>List is ruined!!!!!);
+    StatPrint_(LIST_IS_EMPTY,            >>>List is empty);
+    StatPrint_(LIST_IS_DESTRUCTED,       >>>List is destructed);
+    StatPrint_(LIST_UB,                  >>>List has undefined behavior);
+    StatPrint_(BAD_RESIZE,               >>>List has resize problem);
+    StatPrint_(CAN_NOT_ALLOCATE_MEMORY,  >>>Allocate memory problems);
+    StatPrint_(SIZE_MORETHAN_CAPACITY,   >>>List size more than capacity);
+    StatPrint_(LIST_DATA_NULL_PTR,       >>>List data pointer is null);
+    StatPrint_(BAD_CAPACITY,             >>>Incorrect list capacity);
+    StatPrint_(BAD_INSERT,               >>>Insert operation troubles);
+    StatPrint_(BAD_REMOVE,               >>>Remove operation troubles);
+    StatPrint_(TOO_LONG_TALE,            >>>Tale is more than capacity);
+    StatPrint_(TOO_BIG_HEAD,             >>>Head is more than capacity);
+    StatPrint_(TOO_MUCH_FREEDOM,         >>>Free zone head is more than capacity);
+    StatPrint_(RUINED_HEAD,              >>>Ruined head);
+    StatPrint_(RUINED_TALE,              >>>Ruined tale);
+    StatPrint_(EXTRA_ELEM_RUINED,        >>>Zero element is broken);
+    StatPrint_(BAD_INDEX,                >>>Troubles in list index);
+
+    if (!list->status)
+    {
+        fprintf(LogFile, "List is ok!\n");
+    }
 
     fprintf(LogFile, "Head: %lu\n"
                      "Tale: %lu\n"
                      "FreeHead: %lu\n"
                      "Size: %lu\n"
-                     "Capacity: %lu\n",
+                     "Capacity: %lu\n"
+                     "Sorted: ",
                      list->head, list->tale, list->freeHead, list->size, list->capacity);
+
+    fprintf(LogFile, (list->isSorted) ? "Yes\n" : "No\n"); 
 
     fprintf(LogFile, "Num.    Previous    Value   Next\n");
     
@@ -400,7 +737,7 @@ void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], cons
         fprintf(LogFile, "%4lu    %8lu    %5d   %4lu\n", index, list->data[index].prev, list->data[index].value, list->data[index].next);
     }
 
-    fprintf(LogFile, "}\n");
     fprintf(LogFile, "\n---------------------------------------------------------------------------\n");
 
+    #undef StatPrint_
 }
