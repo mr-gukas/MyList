@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
 #include "log/LOG.h"
 
@@ -61,11 +62,11 @@ enum ListStatus
     BAD_REMOVE              = 1 << 9,
     EXTRA_ELEM_RUINED       = 1 << 10,
     SIZE_MORETHAN_CAPACITY  = 1 << 11,
-    TOO_LONG_TALE           = 1 << 12,
+    TOO_LONG_TAIL           = 1 << 12,
     TOO_BIG_HEAD            = 1 << 13,
     TOO_MUCH_FREEDOM        = 1 << 14,
     RUINED_HEAD             = 1 << 15,
-    RUINED_TALE             = 1 << 16,
+    RUINED_TAIL             = 1 << 16,
     BAD_INDEX               = 1 << 17, 
     LIST_RUINED             = 1 << 18,
 };
@@ -81,7 +82,7 @@ struct List_t
 {
     Node_t* data;
     size_t  head;
-    size_t  tale;
+    size_t  tail;
     size_t  freeHead;
     size_t  size;
     size_t  capacity;
@@ -110,23 +111,24 @@ enum DoLinear
 int ListCtor(List_t* list, size_t capacity);
 int ListDtor(List_t* list);
 Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode = NO_SORT);
-size_t ListTale(List_t* list);
+size_t ListTail(List_t* list);
 size_t ListHead(List_t* list);
 size_t ListPrev(List_t* list, size_t physIndex);
 size_t ListNext(List_t* list, size_t physIndex);
-size_t ReturnPhysicalIndexFromLogical(List_t* list, size_t logIndex);
+size_t ReturnPhysicalIndexFromLogicalButItIsBetterIfYouSaveIndexesInOtherPlace(List_t* list, size_t logIndex);
 int ListIsEmpty(List_t* list);
 int ListIsDestructed(List_t* list);
 int ListLinearize(List_t *list);
 size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value);
 void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], const char func[MAX_STR_SIZE]);
 size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value);
-size_t ListInsertTale(List_t* list, Elem_t value);
+size_t ListInsertTail(List_t* list, Elem_t value);
 size_t ListInsertHead(List_t* list, Elem_t value);
 Elem_t ListRemove(List_t* list, size_t physIndex);
-Elem_t ListRemoveTale(List_t* list);
+Elem_t ListRemoveTail(List_t* list);
 Elem_t ListRemoveHead(List_t* list);
 size_t FindElemByValue(List_t* list, Elem_t value);
 int ListVerify(List_t* list);
 int ListTotalCleaning(List_t* list);
+void MakePngName(char* name, char num);
 

@@ -2,4 +2,4 @@ CPPFLAGS := -D _DEBUG -ggdb3 -std=c++17 -O0 -Wall -Wextra -Weffc++ -Waggressive-
 
 
 all:
-	g++ $(CPPFLAGS) main.cpp list.cpp log/LOG.cpp
+	g++ $(CPPFLAGS) main.cpp list.cpp log/LOG.cpp -o obj/list.out

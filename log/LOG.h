@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #ifndef PRINT_FILE
-    #define PRINT_FILE "log/log.txt"
+    #define PRINT_FILE "obj/log.htm"
 #endif
 
 FILE* startLog(FILE* LogFile);

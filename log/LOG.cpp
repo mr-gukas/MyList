@@ -2,7 +2,10 @@
 
 FILE* startLog(FILE* LogFile)
 {
-    LogFile = fopen(PRINT_FILE, "a+");
+    LogFile = fopen(PRINT_FILE, "w+");
+
+    fprintf(LogFile, "<pre>\n");
+    fprintf(LogFile, "<p style=\"font-size:20px\">\n");
 
     fprintf(LogFile, "---------------------------Started logging---------------------------------\n");
     printTime(LogFile);
@@ -25,6 +28,7 @@ void printTime(FILE* file)
 void endLog(FILE* LogFile)
 {
     fprintf(LogFile, "\nEND OF LOG!\n");
+    fprintf(LogFile, "</p>\n");
     fclose (LogFile);
     LogFile = nullptr;
 }
