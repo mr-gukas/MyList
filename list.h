@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include "log/LOG.h"
 
 #define LOG_MODE
@@ -39,6 +40,7 @@
 
 #define ListDump(list) \
     ListDumpFunc(list, __LINE__, __FILE__, __PRETTY_FUNCTION__)
+
 
 typedef int Elem_t;
 

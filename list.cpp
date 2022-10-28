@@ -693,7 +693,7 @@ void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], cons
 
     list->status = ListVerify(list);
  
-    fprintf(LogFile, "\n---------------------------ListDump---------------------------------------\n");
+    fprintf(LogFile, "\n<hr>\n");
    
     fprintf(LogFile, "Called at %s at %s(%lu)\n", file, func, line);
     fprintf(LogFile, "List status:\n");
@@ -727,7 +727,9 @@ void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], cons
     {
         fprintf(LogFile, "List is ok!\n");
     }
-    
+	
+	fputc('\n', LogFile);
+
     FILE* DumpFile = fopen("obj/dump", "w+");
 
     fprintf(DumpFile, "digraph G{\n");
@@ -764,19 +766,29 @@ void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], cons
 
     for (size_t index = 0; index <= list->capacity; ++index)
     {
-        fprintf(DumpFile, "node%lu [fillcolor=\"#FFB2D0\","
-                          "label=\" <i> Node %lu | { <p> Prev.", index, index);
+		if (index == 0)		  
+			fprintf(DumpFile, "node%lu [fillcolor=\"#7D746D\",", index);
+		else if (index == list->head) 
+			fprintf(DumpFile, "node%lu [fillcolor=\"#CD7F32\",", index);
+		else if (index == list->tail) 
+			fprintf(DumpFile, "node%lu [fillcolor=\"#8F509D\",", index);
+		else if (list->data[index].prev == FREEE)
+			fprintf(DumpFile, "node%lu [fillcolor=\"#00A550\",", index);
+		else
+			fprintf(DumpFile, "node%lu [fillcolor=\"#FFB2D0\",", index); 
+
+        fprintf(DumpFile, "label=\" <i> Node %lu | Val. %d | <n> Next %lu | <p> Prev.", 
+			    index, list->data[index].value, list->data[index].next);
+		
         if (list->data[index].prev == FREEE)
         {
-            fprintf(DumpFile, " Free node |");
+            fprintf(DumpFile, " Free node \"];\n");
         }
         else
         {
-            fprintf(DumpFile, " %lu |", list->data[index].prev);
+            fprintf(DumpFile, " %lu \"];\n", list->data[index].prev);
         }
         
-        fprintf(DumpFile,  " Val. %d | <n> Next. %lu}\"];\n", list->data[index].value, list->data[index].next);
-
         if (index != 0) 
         {
             fprintf(DumpFile, "    node%lu -> node%lu;\n", index - 1, index);
@@ -809,7 +821,7 @@ void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], cons
     MakePngName(dumpName, pngIndex);
 
     char buff[100] = "";
-    sprintf(buff, "dot obj/dump -T png -o %s", dumpName);
+    sprintf(buff, "dot obj/dump -T svg -o %s", dumpName);
     system(buff);
 
     fprintf(LogFile, "<img src = %s>\n", dumpName + 4);
@@ -821,10 +833,8 @@ void ListDumpFunc(List_t* list, size_t line, const char file[MAX_STR_SIZE], cons
 void MakePngName(char* name, char num)
 {
     ASSERT(name != NULL);
-    
-    strcpy(name, "obj/dump");
-    *(name + 8) = num;
-    strcpy(name + 9, ".png");
+	
+	sprintf(name, "obj/dump%03d.svg", num);
 }
 
     

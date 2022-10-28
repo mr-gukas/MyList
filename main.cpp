@@ -20,11 +20,12 @@ int main(void)
     ListDump(&list);
 
     ListRemove(&list, 5);
+	ListDump(&list);
 
     ListLinearize(&list);
     ListDump(&list);
 
-    ListDump(&list);
+	ListDump(&list);
     ListTotalCleaning(&list);
 
     ListDtor(&list);
