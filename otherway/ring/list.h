@@ -21,7 +21,8 @@
         if (ListVerify(list) != LIST_STATUS_OK && ListIsEmpty(list) != LIST_IS_EMPTY)\
         {                                                                             \
             ListDumpFunc(list, "Troubles in programm");                             \
-            ASSERT(0 && "Crashed list")                                                 \
+			fprintf(stderr, "Status: %X\n", list->status);\
+            ASSERT(0 && "Crashed list");                                                 \
         }
 
 #else
@@ -73,8 +74,6 @@ struct Node_t
 struct List_t
 {
     Node_t* data;
-    size_t  head;
-    size_t  tail;
     size_t  freeHead;
     size_t  size;
     size_t  capacity;

@@ -13,10 +13,11 @@ int main(void)
     for (size_t index = 0; index <= 15; ++index)
     {
         ListInsertAfter(&list, index, index); 
+		ListDumpFunc(&list, "Insert %d before %lu", index, index);
     }
 
-    ListInsertBefore(&list, 1, 666);
-	ListDumpFunc(&list, "Insert %d before %lu", 666, 1);
+    ListInsertAfter(&list, 0, 666);
+	ListDumpFunc(&list, "Insert %d after %lu", 666, 1);
 
     ListRemove(&list, 5);
 	ListDumpFunc(&list, "Remove %lu element", 5); 

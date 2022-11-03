@@ -65,62 +65,24 @@ enum ListStatus
 
 struct Node_t
 {
-    size_t    prev;
-    Elem_t value;
-    size_t    next;
+    Node_t* prev;
+    Elem_t  value;
+    Node_t* next;
 };
 
-struct List_t
-{
-    Node_t* data;
-    size_t  head;
-    size_t  tail;
-    size_t  freeHead;
-    size_t  size;
-    size_t  capacity;
-    bool    isSorted;
-    int     status;
-};
+size_t ListTail(Node_t* head);
 
-enum CapacityMode
-{
-    DOWN = 0,
-    UP   = 1,
-};
+Node_t* ListCtor(Node_t* head, Elem_t startValue);
+Node_t* ListInsertAfter(Node_t* root, Elem_t value);
 
-enum EditMode
-{
-    BEFORE = 0,
-    AFTER  = 1,
-};
+void ListDumpFunc(Node_t* head, char dumpReason[MAX_STR_SIZE], ...);
 
-enum DoLinear
-{
-    NO_SORT = 0, 
-    SORT    = 1,
-};
+Elem_t ListRemove(Node_t* rmNode);
 
-int ListCtor(List_t* list, size_t capacity);
-int ListDtor(List_t* list);
-Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode = NO_SORT);
-size_t ListTail(List_t* list);
-size_t ListHead(List_t* list);
-size_t ListPrev(List_t* list, size_t physIndex);
-size_t ListNext(List_t* list, size_t physIndex);
-size_t ReturnPhysicalIndexFromLogicalButItIsBetterIfYouSaveIndexesInOtherPlace(List_t* list, size_t logIndex);
-int ListIsEmpty(List_t* list);
-int ListIsDestructed(List_t* list);
-int ListLinearize(List_t *list);
-size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value);
-void ListDumpFunc(List_t* list, char dumpReason[MAX_STR_SIZE], ...);
-size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value);
-size_t ListInsertTail(List_t* list, Elem_t value);
-size_t ListInsertHead(List_t* list, Elem_t value);
-Elem_t ListRemove(List_t* list, size_t physIndex);
-Elem_t ListRemoveTail(List_t* list);
-Elem_t ListRemoveHead(List_t* list);
-size_t FindElemByValue(List_t* list, Elem_t value);
-int ListVerify(List_t* list);
-int ListTotalCleaning(List_t* list);
+Node_t* FindElemByValue(Node_t* head, Elem_t value);
+Node_t* FindElemByIndex(Node_t* head, size_t index);
+
+int ListTotalCleaning(Node_t* head);
+
 void MakePngName(char* name, char num);
 

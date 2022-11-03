@@ -12,12 +12,12 @@ int ListCtor(List_t* list, size_t capacity)
     list->data = (Node_t*) calloc(capacity + 1, sizeof(Node_t));
     if (list->data == NULL) return CAN_NOT_ALLOCATE_MEMORY;
 
-    list->head     = 1;
-    list->tail     = 1;
-    list->freeHead = 1;
-    list->size     = 0;
-    list->isSorted = true;
-    list->capacity = capacity;
+    list->data[0].next = 1;
+    list->data[0].prev = 1;
+    list->freeHead	   = 1;
+    list->size         = 0;
+    list->isSorted     = true;
+    list->capacity     = capacity;
     
     for (size_t index = 1; index < list->capacity; ++index)
     {
@@ -40,11 +40,11 @@ int ListDtor(List_t* list)
     
     free(list->data);
 
-    list->head     = POISON;
-    list->tail     = POISON;
-    list->freeHead = POISON;
-    list->size     = POISON;
-    list->capacity = POISON;
+    list->data[0].next = POISON;
+    list->data[0].next = POISON;
+    list->freeHead	   = POISON;
+    list->size         = POISON;
+    list->capacity     = POISON;
 
     return LIST_IS_DESTRUCTED;
 }
@@ -53,8 +53,8 @@ int ListIsDestructed(List_t* list)
 {
     if (list == NULL) return LIST_NULL_PTR;
     
-    if (list->head == POISON && list->tail     == POISON && list->freeHead == POISON &&
-        list->size == POISON && list->capacity == POISON)
+    if (list->data[0].prev == POISON && list->data[0].next == POISON && list->freeHead == POISON &&
+        list->size         == POISON && list->capacity     == POISON)
         return LIST_IS_DESTRUCTED;
     
     return LIST_UB;
@@ -64,7 +64,7 @@ int ListIsEmpty(List_t* list)
 {
     if (list == NULL) return LIST_NULL_PTR;
     
-    if (list->head == 1 && list->tail == 1 && list->freeHead == 1 &&
+    if (list->data[0].prev == 1 && list->data[0].next == 1 && list->freeHead == 1 &&
         list->size == 0)
         return LIST_IS_EMPTY;
 
@@ -78,9 +78,9 @@ size_t ReturnPhysicalIndexFromLogicalButItIsBetterIfYouSaveIndexesInOtherPlace(L
     if (list == NULL || logIndex == 0 || logIndex > list->capacity) return size_t (-1);
 
     if (list->isSorted)
-        return list->head - 1 + logIndex;
+        return list->data[0].next - 1 + logIndex;
     
-    size_t phys  = list->head;
+    size_t phys  = list->data[0].next;
     size_t index = 1;
 
     while (index < logIndex) 
@@ -96,14 +96,14 @@ size_t ListHead(List_t* list)
 {
     ASSERT_OK(list);
 
-    return list->head;
+    return list->data[0].next;
 }
 
 size_t ListTail(List_t* list)
 {
     ASSERT_OK(list);
 
-    return list->tail;
+    return list->data[0].prev;
 }
 
 size_t ListNext(List_t* list, size_t physIndex)
@@ -129,10 +129,10 @@ size_t ListPrev(List_t* list, size_t physIndex)
 size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
 {
     ASSERT_OK(list);
-    
-    if (physIndex > list->capacity          ||
+
+	if (physIndex > list->capacity          ||
        (list->data[physIndex].prev == FREEE &&         
-       (list->size != 0 || physIndex != list->tail))) //if user want to insert after free node
+       (list->size != 0 || physIndex != list->data[0].prev))) //if user want to insert after free node
     {
         return BAD_INSERT;
     }
@@ -148,6 +148,7 @@ size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
     
     size_t elemIndex = 0;
 
+    
     if (list->data[list->data[physIndex].next].prev == physIndex)
     {
         list->isSorted = false;
@@ -155,16 +156,16 @@ size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
     
     if (list->size == 0)
     {
-        elemIndex = list->tail;
+        elemIndex = list->data[0].prev;
 
         list->freeHead = list->data[list->freeHead].next;
 
-        list->data[list->tail].value = value;
-        list->data[list->tail].next  = 0;
-        list->data[list->tail].prev  = 0;
+        list->data[list->data[0].prev].value = value;
+        list->data[list->data[0].prev].next  = 0;
+        list->data[list->data[0].prev].prev  = 0;
         
     }
-    else if (physIndex == list->tail) //if insert after tail
+/*    else if (physIndex == list->tail) //if insert after tail
     {
         elemIndex = list->freeHead;
 
@@ -185,7 +186,6 @@ size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
     }
     else //if insert after element in body
     {  
-        elemIndex   = list->freeHead;
 
         size_t newFreeHead = list->data[list->freeHead].next;
 
@@ -201,8 +201,26 @@ size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
 
     }
 
+*/  
+	else
+	{
+        elemIndex   = list->freeHead;
+
+		size_t newFreeHead = list->data[list->freeHead].next;
+
+		list->data[list->freeHead].value = value;
+		list->data[list->freeHead].next  = list->data[physIndex].next;
+		list->data[list->freeHead].prev  = physIndex;
+		
+		list->data[list->data[physIndex].next].prev = list->freeHead;
+		list->data[physIndex].next                  = list->freeHead;
+		
+		list->freeHead = newFreeHead;
+
+	}
+		
     ++list->size;
-    
+
     ASSERT_OK(list);
 
     return elemIndex;
@@ -210,7 +228,7 @@ size_t ListInsertAfter(List_t *list, size_t physIndex, Elem_t value)
 
 size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value)
 {
-    if (list == NULL) return 0;
+/*    if (list == NULL || physIndex == 0) return 0;
 
     ASSERT_OK(list);
     
@@ -233,7 +251,7 @@ size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value)
     if (list->size == 0)
         elemIndex = ListInsertAfter(list, physIndex, value);
 
-    if (physIndex == list->head)
+    if (physIndex == list->data[0].next)
     {
         size_t newFreeHead = list->data[list->freeHead].next;
 
@@ -249,16 +267,19 @@ size_t ListInsertBefore(List_t *list, size_t physIndex, Elem_t value)
         
         elemIndex = list->head;
     }
+
     else
     {
        elemIndex = ListInsertAfter(list, list->data[physIndex].prev, value);
     }
     
     ASSERT_OK(list);
-
     return elemIndex;
-}
+*/
 
+	
+}
+  
 Elem_t ListRemove(List_t* list, size_t physIndex)
 {
     ASSERT_OK(list);
@@ -269,64 +290,24 @@ Elem_t ListRemove(List_t* list, size_t physIndex)
         list->status |= BAD_REMOVE;
         return POISON;
     }
+	
+	if (physIndex < list->data[0].prev && physIndex > list->data[0].next)
+		list->isSorted = false;
+	
+	value = list->data[physIndex].value;
 
-    if (physIndex == list->head)
-    {
-        if (physIndex == list->tail)
-        {
-            value = list->data[physIndex].value;
-                
-            list->data[physIndex].prev  = FREEE;
-            list->data[physIndex].next  = list->freeHead;
-            list->data[physIndex].value = 0;
-            list->freeHead              = physIndex;
-        }
-        else
-        {
-            value           = list->data[physIndex].value;
-            size_t newHead  = list->data[list->head].next;
+	size_t next = list->data[physIndex].next;
+	size_t prev = list->data[physIndex].prev;
 
-            list->data[list->head].prev  = FREEE;
-            list->data[list->head].value = 0;
-            list->data[list->head].next  = list->freeHead;
-            
-            list->freeHead = physIndex;
-            list->head     = newHead;
-        }
-    }
-    else if (physIndex == list->tail)
-    {
-        value           = list->data[physIndex].value;
-        size_t newTail  = list->data[list->tail].prev;
+	list->data[physIndex].prev  = FREEE;
+	list->data[physIndex].next  = list->freeHead;
+	list->data[physIndex].value = 0;
 
-        list->data[list->tail].prev  = FREEE;
-        list->data[list->tail].value = 0;
-        list->data[list->tail].next  = list->freeHead;
-        
-        list->freeHead              = physIndex;
-        list->tail                  = newTail;
-        list->data[list->tail].next = 0;
-    }
-    else
-    {
-        value = list->data[physIndex].value;
+	list->freeHead = physIndex;
 
-        size_t next = list->data[physIndex].next;
-        size_t prev = list->data[physIndex].prev;
-    
-        list->data[physIndex].prev  = FREEE;
-        list->data[physIndex].next  = list->freeHead;
-        list->data[physIndex].value = 0;
+	list->data[next].prev = prev;
+	list->data[prev].next = next;
 
-        list->freeHead = physIndex;
-
-        list->data[next].prev = prev;
-        list->data[prev].next = next;
-
-        list->isSorted = false;
-
-    } 
-    
     --list->size;
 
     if (list->isSorted)
@@ -342,6 +323,7 @@ Elem_t ListRemove(List_t* list, size_t physIndex)
     }
 
     ASSERT_OK(list);
+
     return value;
 }
 
@@ -376,17 +358,17 @@ Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode)
         }
 
         size_t updFree = list->capacity + 1;
-        size_t fHead   = list->freeHead;
+        //size_t fHead   = list->freeHead;
 
-        while (dataptr[fHead].next != 0)
-        {
-            fHead = list->data[fHead].next;
-        }
+        //while (dataptr[fHead].next != 0)
+        //{
+        //    fHead = dataptr[fHead].next;
+        //}
 
-        if (fHead == list->freeHead)
+        //if (fHead == list->freeHead)
             list->freeHead = updFree;
-        else
-            dataptr[fHead].next = updFree;
+        //else
+        //    dataptr[fHead].next = updFree;
 
         for (size_t index = updFree; index < updCapacity; ++index)
         {
@@ -414,7 +396,7 @@ Node_t* ListResize(List_t* list, CapacityMode capMode, DoLinear linearMode)
         else
             return list->data;
  
-        if (linearMode && (list->isSorted == false || (list->isSorted == true && list->tail > updCapacity)))
+        if (linearMode && (list->isSorted == false || (list->isSorted == true && list->data[0].prev > updCapacity)))
         {   
             if (ListLinearize(list))
                 return NULL;
@@ -467,7 +449,7 @@ int ListLinearize(List_t *list)
     Node_t* dataptr = (Node_t*) calloc(1 + list->capacity, sizeof(Node_t));
     if (dataptr == NULL) return CAN_NOT_ALLOCATE_MEMORY;
 
-    size_t ptr = list->head;
+    size_t ptr = list->data[0].next;
 
     if (list->size == 0)
         ptr = 0;
@@ -495,12 +477,20 @@ int ListLinearize(List_t *list)
     }
 
     free(list->data);
+	
+	printf("---------%lu\n", dataptr[list->freeHead].next);
+	
+	for (size_t index = dataptr[list->freeHead].next; index <= list->capacity; ++index)
+	{
+		dataptr[index].next  = (index == list->capacity) ? 0 : index+1;
+		dataptr[index].prev  = FREEE;
+		dataptr[index].value = 0;
+	}
 
-    list->isSorted = true;
-    list->head     = 1;
-    list->tail     = (list->size == 0 ? 1 : list->size);
-    list->data     = dataptr;
-
+	list->data         = dataptr;
+    list->isSorted	   = true;
+    list->data[0].next = 1;
+    list->data[0].prev = (list->size == 0 ? 1 : list->size);
     ASSERT_OK(list);
 
     return LIST_STATUS_OK;
@@ -534,7 +524,7 @@ size_t FindElemByValue(List_t* list, Elem_t value)
 {
     ASSERT_OK(list);
 
-    size_t physIndex = list->head;
+    size_t physIndex = list->data[0].next;
 
     while (physIndex != 0 && list->data[physIndex].value != value)
     {
@@ -575,10 +565,10 @@ int ListVerify(List_t* list)
     if (list->size > list->capacity)
         status |= SIZE_MORETHAN_CAPACITY;
 
-    if (list->tail > list->capacity)
+    if (list->data[0].prev > list->capacity)
         status |= TOO_LONG_TAIL;
 
-    if (list->head > list->capacity)
+    if (list->data[0].next > list->capacity)
         status |= TOO_BIG_HEAD;
 
     if (list->freeHead > list->capacity)
@@ -593,17 +583,10 @@ int ListVerify(List_t* list)
         return status;
     }
 
-    if (list->data[0].next != 0 &&
-        list->data[0].prev != 0 &&
-        list->data[0].value != 0)
-    {
-        status |= EXTRA_ELEM_RUINED;
-    }
-
-    if (list->tail != list->head && list->data[list->head].prev != 0)
+    if (list->data[0].prev != list->data[0].next && list->data[list->data[0].next].prev != 0)
         status |= RUINED_HEAD;
     
-    if (list->tail != list->head && list->data[list->tail].next != 0)
+    if (list->data[0].prev != list->data[0].next && list->data[list->data[0].prev].next != 0) 
         status |= RUINED_TAIL;
 
     if (status)
@@ -617,21 +600,22 @@ int ListVerify(List_t* list)
         if (list->data[index].next > list->capacity ||
             (list->data[index].prev != FREEE && list->data[index].prev > list->capacity))
         {
+			printf("%lu--\n", index);
             status |= BAD_INDEX;
             break;
         }
     }
 
-    size_t curIndex = list->head;
+    size_t curIndex = list->data[0].next;
     size_t size     = 0;
 
     while (size <= list->capacity)
     {
         if (list->data[curIndex].next == 0)
         {
-            if (curIndex != list->capacity && curIndex != list->tail)
+            if (curIndex != list->capacity && curIndex != list->data[0].prev)
             {
-                status |= BAD_INDEX;
+                status |= BAD_INDEX; 
             }
 
             ++size;
@@ -643,6 +627,7 @@ int ListVerify(List_t* list)
                  list->data[list->data[curIndex].prev].next != curIndex)))
         {
             status |= BAD_INDEX;
+
             break;
         }
 
@@ -744,11 +729,11 @@ void ListDumpFunc(List_t* list, char dumpReason[MAX_STR_SIZE], ...)
 
     fprintf(DumpFile, "head [fillcolor=\"#FFFEB6\", "
                       "label=\"HEAD = %lu\"];\n",
-                      list->head);
+                      list->data[0].next);
 
     fprintf(DumpFile, "tail  [fillcolor=\"#FFFEB6\", "
                      "label=\"TAIL = %lu\"];\n",
-                      list->tail);
+                      list->data[0].prev);
 
     fprintf(DumpFile, "freeHead [fillcolor=\"#FFFEB6\", "
                      "label=\"FREE HEAD = %lu\"];\n",
@@ -774,9 +759,9 @@ void ListDumpFunc(List_t* list, char dumpReason[MAX_STR_SIZE], ...)
     {
 		if (index == 0)		  
 			fprintf(DumpFile, "node%lu [fillcolor=\"#C0C0C0\",", index);
-		else if (index == list->head) 
+		else if (index == list->data[0].next) 
 			fprintf(DumpFile, "node%lu [fillcolor=\"#FAA76C\",", index);
-		else if (index == list->tail) 
+		else if (index == list->data[0].prev) 
 			fprintf(DumpFile, "node%lu [fillcolor=\"#C1AED1\",", index);
 		else if (list->data[index].prev == FREEE)
 			fprintf(DumpFile, "node%lu [fillcolor=\"#98FF98\",", index);
@@ -800,7 +785,7 @@ void ListDumpFunc(List_t* list, char dumpReason[MAX_STR_SIZE], ...)
            fprintf(DumpFile, "    node%lu -> node%lu;\n", index - 1, index);
         }
     }
-
+	
     fprintf(DumpFile, "\n    edge [style=solid, constraint=false];\n");
 
     for (size_t index = 1; index <= list->capacity; ++index)
@@ -814,8 +799,8 @@ void ListDumpFunc(List_t* list, char dumpReason[MAX_STR_SIZE], ...)
 
     fprintf(DumpFile, "\n edge [style=bold, constraint=false];\n");
 
-    fprintf(DumpFile, "head     -> node%lu; \n", list->head);
-    fprintf(DumpFile, "tail     -> node%lu; \n", list->tail );
+    fprintf(DumpFile, "head     -> node%lu; \n", list->data[0].next);
+    fprintf(DumpFile, "tail     -> node%lu; \n", list->data[0].prev);
     fprintf(DumpFile, "freeHead -> node%lu; \n", list->freeHead);
 
     fprintf(DumpFile, "}\n");

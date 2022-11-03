@@ -10,7 +10,7 @@ isSorted [fillcolor="#FFFEB6", label="SORTED = YES"];
 node [color=black, shape=record, style="rounded, filled"];
 
 edge [style=invis, constraint=true];
-node0 [fillcolor="#C0C0C0",label=" <i> Node 0 | Val. 0 | <n> Next 0 | <p> Prev. 0 "];
+node0 [fillcolor="#C0C0C0",label=" <i> Node 0 | Val. 0 | <n> Next 1 | <p> Prev. 16 "];
 node1 [fillcolor="#FAA76C",label=" <i> Node 1 | Val. 666 | <n> Next 2 | <p> Prev. 0 "];
     node0 -> node1;
 node2 [fillcolor="#FFB2D0",label=" <i> Node 2 | Val. 0 | <n> Next 3 | <p> Prev. 1 "];
